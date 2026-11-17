@@ -1,39 +1,63 @@
 import { create } from 'zustand';
 
-interface ThemeState {
-  isDarkMode: boolean;
-  toggleTheme: () => void;
-  initializeTheme: () => void;
+// ==================== تعریف اینترفیس برای State ====================
+interface FilterState {
+  // مقادیر (Values)
+  searchQuery: string;
+  selectedJobTypes: string[];
+  selectedExperienceLevels: string[];
+  selectedLocation: string;
+  selectedSalaryRange: string;
+  selectedDatePosted: string;
+  sortBy: string;
+  currentPage: number;
+
+  // اکشن‌ها (Actions)
+  setSearchQuery: (query: string) => void;
+  setSelectedJobTypes: (types: string[]) => void;
+  setSelectedExperienceLevels: (levels: string[]) => void;
+  setSelectedLocation: (location: string) => void;
+  setSelectedSalaryRange: (range: string) => void;
+  setSelectedDatePosted: (date: string) => void;
+  setSortBy: (sort: string) => void;
+  setCurrentPage: (page: number) => void;
+  resetFilters: () => void;
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
-  isDarkMode: false,
-  toggleTheme: () => set((state) => {
-    const newMode = !state.isDarkMode;
-    
-    // ✅ اضافه یا حذف کردن کلاس dark از ریشه html
-    if (newMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-    
-    return { isDarkMode: newMode };
-  }),
-  initializeTheme: () => {
-    // بررسی تنظیمات ذخیره شده یا تنظیمات سیستم‌عامل
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+// ==================== مقادیر اولیه ====================
+const initialState = {
+  searchQuery: '',
+  selectedJobTypes: [],
+  selectedExperienceLevels: [],
+  selectedLocation: '',
+  selectedSalaryRange: '',
+  selectedDatePosted: 'all',
+  sortBy: 'newest',
+  currentPage: 1,
+};
 
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    set({ isDarkMode: isDark });
-  }
+// ==================== ساخت استور ====================
+export const useFilterStore = create<FilterState>((set) => ({
+  // مقداردهی اولیه
+  ...initialState,
+
+  // اکشن‌ها
+  setSearchQuery: (query) => set({ searchQuery: query, currentPage: 1 }),
+  
+  setSelectedJobTypes: (types) => set({ selectedJobTypes: types, currentPage: 1 }),
+  
+  setSelectedExperienceLevels: (levels) => set({ selectedExperienceLevels: levels, currentPage: 1 }),
+  
+  setSelectedLocation: (location) => set({ selectedLocation: location, currentPage: 1 }),
+  
+  setSelectedSalaryRange: (range) => set({ selectedSalaryRange: range, currentPage: 1 }),
+  
+  setSelectedDatePosted: (date) => set({ selectedDatePosted: date, currentPage: 1 }),
+  
+  setSortBy: (sort) => set({ sortBy: sort, currentPage: 1 }),
+  
+  setCurrentPage: (page) => set({ currentPage: page }),
+
+  // ریست کردن همه فیلترها
+  resetFilters: () => set({ ...initialState }),
 }));
