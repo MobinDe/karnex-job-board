@@ -18,7 +18,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: null,
-  login: (user, token) => {
+  login: (user: User, token: string) => { // تایپ صریح برای user و token
     localStorage.setItem('karnex_token', token);
     localStorage.setItem('karnex_user', JSON.stringify(user));
     set({ user, token });
@@ -39,5 +39,5 @@ export const useAuthStore = create<AuthState>((set) => ({
         localStorage.removeItem('karnex_user');
       }
     }
-  }
+  },
 }));
