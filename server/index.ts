@@ -322,3 +322,12 @@ app.get(
 
 // ==================== اجرای سرور ====================
 export default app;
+
+// اجرای لوکال فقط زمانی که خارج از Vercel هستیم
+// روی Vercel متغیر VERCEL به صورت خودکار تعریف می‌شود و این بلوک اجرا نمی‌شود
+if (!process.env.VERCEL) {
+  const PORT = Number(process.env.PORT) || 3000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
