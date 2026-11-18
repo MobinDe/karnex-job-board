@@ -15,7 +15,7 @@ dotenv.config();
 
 // ==================== تنظیمات اولیه ====================
 const app = express();
-const PORT = process.env.PORT || 5000;
+
 const JWT_SECRET = process.env.JWT_SECRET || "karnex-super-secret-key";
 
 const connectionString = process.env.DATABASE_URL;
@@ -321,6 +321,4 @@ app.get(
 );
 
 // ==================== اجرای سرور ====================
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-});
+export default app;

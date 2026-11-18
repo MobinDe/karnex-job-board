@@ -1,4 +1,5 @@
 {
+  "buildCommand": "npx prisma generate && npx tsc",
   "builds": [
     {
       "src": "index.ts",
@@ -14,5 +15,4 @@
       "dest": "index.ts"
     }
   ]
-  
 }
