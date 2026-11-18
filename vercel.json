@@ -1,18 +1,18 @@
 {
-  "services": {
-    "frontend": {
-      "root": "./",
-      "framework": "vite"
-    },
-    "backend": {
-      "root": "server/",
-      "entrypoint": "index.ts"
-    }
-  },
-  "rewrites": [
+  "buildCommand": "npx prisma generate && npx tsc",
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": "/backend"
+      "src": "index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["prisma/schema.prisma"]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "index.ts"
     }
   ]
 }
