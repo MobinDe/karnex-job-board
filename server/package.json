@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "build": "tsc",
+    "vercel-build": "prisma generate && tsc"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +33,9 @@
     "prisma": "^7.10.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "typescript": "5.9.3"
   }
 }
