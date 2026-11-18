@@ -7,14 +7,14 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
   },
-  // ✅ تنظیمات سرور برای اتصال درست به Render
   server: {
     host: '0.0.0.0',
     port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
+    allowedHosts: true, // ✅ این خط به Render اجازه دسترسی می‌دهد
   },
-  // ✅ تنظیمات حالت پیش‌نمایش (Production)
   preview: {
     host: '0.0.0.0',
     port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
+    allowedHosts: true, // ✅ برای حالت پروداکشن هم مجاز می‌کنیم
   }
 })
