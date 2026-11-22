@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://karnex-backend.onrender.com/api', // ✅ آدرس بک‌اند Render شما
 });
 
 // اضافه کردن خودکار توکن به هدر درخواست‌ها
