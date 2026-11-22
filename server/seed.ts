@@ -2,10 +2,11 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
-// ==================== تنظیمات اتصال به دیتابیس ====================
+// ==================== تنظیمات اتصال ====================
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error('❌ متغیر DATABASE_URL در فایل .env تعریف نشده است.');
@@ -15,67 +16,72 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// ==================== داده‌های پایه ====================
-
-// تعریف تایپ برای موقعیت‌های شغلی (برای تولید متن‌های باورپذیرتر)
+// ==================== قالب‌های شغلی ====================
 interface JobTemplate {
   title: string;
-  category: string;
-  minSalary: string;
-  maxSalary: string;
-  skills: string[];
-  benefits: string[];
+  salary: string;
+  description: string;
+  requirements: string;
+  benefits: string;
 }
 
 const jobTemplates: JobTemplate[] = [
   {
     title: 'توسعه‌دهنده ارشد فرانت‌اند (React)',
-    category: 'فنی و مهندسی',
-    minSalary: '۳۰ تا ۴۰ میلیون',
-    maxSalary: '۵۰ میلیون به بالا',
-    skills: ['تسلط کامل به React و TypeScript', 'آشنایی با Next.js', 'تجربه کار با Tailwind CSS', 'توانایی مدیریت State (مانند Zustand یا Redux)'],
-    benefits: ['بیمه تکمیلی', 'امکان دورکاری', 'غذای رایگان', 'پاداش عملکرد'],
+    salary: '۳۰ تا ۴۰ میلیون',
+    description: 'ما به دنبال یک توسعه‌دهنده فرانت‌اند با تجربه و خلاق هستیم تا به تیم فنی ما بپیوندد. شما در این نقش مسئولیت طراحی و پیاده‌سازی رابط‌های کاربری پیچیده و جذاب را بر عهده خواهید داشت.',
+    requirements: 'حداقل ۳ سال سابقه کار با React\nتسلط کامل به TypeScript\nآشنایی با Next.js و Tailwind CSS\nتوانایی مدیریت State (مانند Zustand یا Redux)',
+    benefits: 'بیمه تکمیلی\nامکان دورکاری\nغذای رایگان\nپاداش عملکرد',
   },
   {
     title: 'برنامه‌نویس بک‌اند (Node.js)',
-    category: 'فنی و مهندسی',
-    minSalary: '۲۵ تا ۳۵ میلیون',
-    maxSalary: '۴۰ تا ۵۰ میلیون',
-    skills: ['تسلط به Node.js و Express', 'آشنایی با دیتابیس PostgreSQL', 'تجربه کار با Prisma یا TypeORM', 'آشنایی با Docker'],
-    benefits: ['بیمه تکمیلی', 'ساعت کاری منعطف', 'توسعه مهارت‌ها'],
+    salary: '۲۵ تا ۳۵ میلیون',
+    description: 'تیم بک‌اند ما به دنبال یک برنامه‌نویس متخصص Node.js است تا زیرساخت‌های سمت سرور محصولات ما را توسعه دهد. شما با دیتابیس‌های حجیم و معماری میکروسرویس کار خواهید کرد.',
+    requirements: 'تسلط به Node.js و Express\nآشنایی با دیتابیس PostgreSQL\nتجربه کار با Prisma یا TypeORM\nآشنایی با Docker و CI/CD',
+    benefits: 'بیمه تکمیلی\nساعت کاری منعطف\nتوسعه مهارت‌ها\nتفریحات تیمی',
   },
   {
     title: 'طراح UI/UX',
-    category: 'طراحی',
-    minSalary: '۲۰ تا ۳۰ میلیون',
-    maxSalary: '۳۵ تا ۴۵ میلیون',
-    skills: ['تسلط به Figma', 'آشنایی با اصول طراحی تجربه کاربری', 'توانایی ساخت پروتوتایپ', 'درک عمیق از Design System'],
-    benefits: ['محیط خلاقانه', 'بیمه تکمیلی', 'دوره‌های آموزشی'],
+    salary: '۲۰ تا ۳۰ میلیون',
+    description: 'ما به دنبال یک طراح خلاق و بااستعداد هستیم که بتواند تجربه کاربری بی‌نظیری برای میلیون‌ها کاربر ما خلق کند. شما مسئول طراحی رابط کاربری اپلیکیشن و وب‌سایت ما خواهید بود.',
+    requirements: 'تسلط به Figma\nآشنایی با اصول طراحی تجربه کاربری\nتوانایی ساخت پروتوتایپ\nدرک عمیق از Design System',
+    benefits: 'محیط خلاقانه\nبیمه تکمیلی\nدوره‌های آموزشی\nامکان ارتقاء',
   },
   {
     title: 'کارشناس دیجیتال مارکتینگ',
-    category: 'بازاریابی',
-    minSalary: '۱۵ تا ۲۰ میلیون',
-    maxSalary: '۲۵ تا ۳۵ میلیون',
-    skills: ['آشنایی با ابزارهای تحلیل (Google Analytics)', 'تجربه در کمپین‌های تبلیغاتی', 'تسلط به سئو و SEM', 'توانایی تولید محتوا'],
-    benefits: ['پاداش عملکرد', 'بیمه تکمیلی', 'تفریحات تیمی'],
-  },
-  {
-    title: 'مدیر محصول (Product Manager)',
-    category: 'مدیریت',
-    minSalary: '۳۵ تا ۴۵ میلیون',
-    maxSalary: '۵۰ میلیون به بالا',
-    skills: ['تجربه در مدیریت محصولات دیجیتال', 'توانایی تحلیل داده', 'مهارت‌های ارتباطی قوی', 'آشنایی با Agile و Scrum'],
-    benefits: ['بیمه تکمیلی', 'پاداش عملکرد', 'امکان ارتقاء'],
+    salary: '۱۵ تا ۲۰ میلیون',
+    description: 'برای توسعه کمپین‌های بازاریابی دیجیتال و افزایش آگاهی از برند، به یک کارشناس مارکتینگ با انگیزه نیاز داریم. شما با تیم محتوا و طراحی همکاری نزدیک خواهید داشت.',
+    requirements: 'آشنایی با ابزارهای تحلیل (Google Analytics)\nتجربه در کمپین‌های تبلیغاتی\nتسلط به سئو و SEM\nتوانایی تولید محتوا',
+    benefits: 'پاداش عملکرد\nبیمه تکمیلی\nتفریحات تیمی\nمحیط پویا',
   },
   {
     title: 'کارآموز برنامه‌نویسی',
-    category: 'فنی و مهندسی',
-    minSalary: '۵ تا ۱۰ میلیون',
-    maxSalary: '۱۰ تا ۱۵ میلیون',
-    skills: ['آشنایی مقدماتی با یک زبان برنامه‌نویسی', 'علاقه به یادگیری', 'توانایی کار تیمی', 'مسئولیت‌پذیری'],
-    benefits: ['محیط آموزشی', 'منتورینگ', 'امکان جذب پس از دوره'],
+    salary: '۵ تا ۱۰ میلیون',
+    description: 'فرصتی عالی برای شروع مسیر حرفه‌ای در دنیای برنامه‌نویسی! ما به دنبال افراد باانگیزه و علاقه‌مند به یادگیری هستیم. شما در کنار تیم فنی ما تجربه عملی کسب خواهید کرد.',
+    requirements: 'آشنایی مقدماتی با یک زبان برنامه‌نویسی\nعلاقه به یادگیری\nتوانایی کار تیمی\nمسئولیت‌پذیری',
+    benefits: 'محیط آموزشی\nمنتورینگ\nامکان جذب پس از دوره\nمحیط صمیمی',
   },
+  {
+    title: 'مهندس دواپس (DevOps)',
+    salary: '۴۰ تا ۵۰ میلیون',
+    description: 'ما به دنبال یک مهندس دواپس برای مدیریت زیرساخت‌های ابری و خودکارسازی فرآیندهای استقرار (CI/CD) هستیم. اگر به اتوماسیون و پایداری سیستم‌ها علاقه دارید، این جایگاه برای شماست.',
+    requirements: 'تسلط به Docker و Kubernetes\nتجربه با AWS یا GCP\nآشنایی با Linux و شبکه\nمهارت در نوشتن اسکریپت‌های Bash یا Python',
+    benefits: 'بیمه تکمیلی\nپاداش عملکرد\nامکان دورکاری\nتجهیزات کاری',
+  },
+  {
+    title: 'مدیر محصول (Product Manager)',
+    salary: '۳۵ تا ۴۵ میلیون',
+    description: 'ما به دنبال یک مدیر محصول با تجربه هستیم که بتواند استراتژی محصول را تعیین کند و تیم‌های فنی و طراحی را هدایت کند. شما پل ارتباطی بین نیازهای کاربران و تیم فنی خواهید بود.',
+    requirements: 'تجربه در مدیریت محصولات دیجیتال\nتوانایی تحلیل داده\nمهارت‌های ارتباطی قوی\nآشنایی با Agile و Scrum',
+    benefits: 'بیمه تکمیلی\nپاداش عملکرد\nامکان ارتقاء\nساعت کاری منعطف',
+  },
+  {
+    title: 'کارشناس تست و تضمین کیفیت (QA)',
+    salary: '۱۸ تا ۲۵ میلیون',
+    description: 'برای اطمینان از کیفیت محصولات نرم‌افزاری، به یک کارشناس تست با دقت و منظم نیاز داریم. شما مسئول شناسایی باگ‌ها و بهبود فرآیندهای تست خواهید بود.',
+    requirements: 'آشنایی با تست‌های Manual و Automated\nتسلط به ابزارهایی مثل Selenium یا Cypress\nآشنایی با Jira و Agile\nدقت بالا و تفکر تحلیلی',
+    benefits: 'بیمه تکمیلی\nتوسعه مهارت‌ها\nغذای رایگان\nمحیط صمیمی',
+  }
 ];
 
 const companyNames = [
@@ -92,73 +98,89 @@ const locations = [
 const jobTypes = ['full-time', 'part-time', 'remote', 'contract'];
 
 // ==================== توابع کمکی ====================
-
-// انتخاب یک عضو تصادفی از آرایه
 function getRandom<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-// تولید توضیحات کامل و باورپذیر بر اساس الگوی شغلی
-function generateJobDetails(template: JobTemplate) {
-  const experienceLevel = template.title.includes('ارشد') ? 'سنیور' : template.title.includes('کارآموز') ? 'کارآموز' : 'جونیور';
-  
-  const description = `ما در شرکت ${getRandom(companyNames)} به دنبال یک ${template.title} با انگیزه و خلاق هستیم تا به تیم ${template.category} ما بپیوندد. 
-  
-در این نقش، شما با جدیدترین تکنولوژی‌ها کار خواهید کرد و نقش کلیدی در موفقیت پروژه‌های ما خواهید داشت. محیط کار ما پویا، صمیمی و حمایت‌گر است و فرصت‌های رشد فراوانی برای شما فراهم می‌کند.`;
-
-  const requirements = template.skills.map(skill => `• ${skill}`).join('\n') + `\n• سطح تجربه: ${experienceLevel}`;
-
-  const benefits = template.benefits.map(benefit => `• ${benefit}`).join('\n') + `\n• حقوق: ${template.minSalary} تا ${template.maxSalary}`;
-
-  return { description, requirements, benefits };
-}
-
 // ==================== تابع اصلی ====================
 async function main() {
-  console.log('⏳ شروع به ساخت ۱۰۰ آگهی شغلی واقع‌گرایانه...');
+  console.log('⏳ شروع به پاک‌سازی دیتابیس...');
 
-  // پاک کردن داده‌های قبلی
-  await prisma.application.deleteMany(); // پاک کردن درخواست‌ها برای جلوگیری از خطای کلید خارجی
+  // ۱. پاک کردن داده‌های قبلی (به ترتیب وابستگی‌ها)
+  await prisma.application.deleteMany();
   await prisma.job.deleteMany();
-  console.log('🗑️ داده‌های قبلی پاک شدند.');
+  await prisma.user.deleteMany();
+  console.log('🗑️ داده‌های قبلی با موفقیت پاک شدند.');
 
+  // ۲. ساخت کاربران تستی
+  console.log('👥 در حال ساخت کاربران تستی...');
+  const hashedPassword = await bcrypt.hash('123456', 10);
+
+  const candidateUser = await prisma.user.create({
+    data: {
+      name: 'علی رضایی (کارجو)',
+      email: 'candidate@example.com',
+      password: hashedPassword,
+      role: 'candidate',
+    },
+  });
+
+  const employerUser = await prisma.user.create({
+    data: {
+      name: 'شرکت فناوری (کارفرما)',
+      email: 'employer@example.com',
+      password: hashedPassword,
+      role: 'employer',
+    },
+  });
+  console.log(`✅ کاربران ساخته شدند: ${candidateUser.email} و ${employerUser.email} (رمز: 123456)`);
+
+  // ۳. ساخت ۱۰۰ آگهی شغلی
+  console.log('💼 در حال ساخت ۱۰۰ آگهی شغلی...');
   const jobsToInsert = [];
-
+  
   for (let i = 0; i < 100; i++) {
-    // انتخاب یک الگوی شغلی تصادفی
     const template = getRandom(jobTemplates);
-    
-    // تولید تاریخ تصادفی در ۳۰ روز گذشته
     const randomDaysAgo = Math.floor(Math.random() * 30);
     const createdAt = new Date();
     createdAt.setDate(createdAt.getDate() - randomDaysAgo);
 
-    // تولید توضیحات
-    const { description, requirements, benefits } = generateJobDetails(template);
-
-    const newJob = {
+    jobsToInsert.push({
       title: template.title,
       companyName: getRandom(companyNames),
       location: getRandom(locations),
-      salary: Math.random() > 0.1 ? getRandom([template.minSalary, template.maxSalary]) : null, // ۱۰٪ احتمال نداشتن حقوق
+      salary: Math.random() > 0.15 ? template.salary : null, // ۱۵٪ آگهی‌ها حقوق ندارند
       jobType: getRandom(jobTypes),
-      isUrgent: Math.random() > 0.8,
-      description: description,
-      requirements: requirements,
-      benefits: benefits,
-      createdAt: createdAt,
+      isUrgent: Math.random() > 0.8, // ۲۰٪ فوری
+      description: template.description,
+      requirements: template.requirements,
+      benefits: template.benefits,
+      createdAt,
       updatedAt: new Date(),
-    };
-
-    jobsToInsert.push(newJob);
+    });
   }
 
-  // درج تمام ۱۰۰ آگهی به صورت یکجا
-  await prisma.job.createMany({
-    data: jobsToInsert,
-  });
+  await prisma.job.createMany({ data: jobsToInsert });
+  console.log(`✅ ۱۰۰ آگهی شغلی ساخته شد.`);
 
-  console.log('✅ ۱۰۰ آگهی شغلی با توضیحات کامل در دیتابیس ثبت شدند!');
+  // ۴. ساخت چند درخواست شغلی (Application) برای کاربر کارجو
+  console.log('📝 در حال ساخت درخواست‌های شغلی تستی...');
+  
+  // گرفتن ۳ آگهی تصادفی برای ارسال رزومه
+  const randomJobs = await prisma.job.findMany({ take: 3 });
+  
+  if (randomJobs.length > 0) {
+    await prisma.application.createMany({
+      data: [
+        { userId: candidateUser.id, jobId: randomJobs[0].id, status: 'pending' },
+        { userId: candidateUser.id, jobId: randomJobs[1].id, status: 'accepted' },
+        ...(randomJobs[2] ? [{ userId: candidateUser.id, jobId: randomJobs[2].id, status: 'rejected' }] : []),
+      ],
+    });
+    console.log(`✅ ۳ درخواست شغلی برای کاربر ${candidateUser.email} ساخته شد.`);
+  }
+
+  console.log('🎉 عملیات Seed با موفقیت به پایان رسید!');
 }
 
 // ==================== اجرا ====================
