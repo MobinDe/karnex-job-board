@@ -1,4 +1,8 @@
-import express, { type Request, type Response, type NextFunction } from "express";
+import express, {
+  type Request,
+  type Response,
+  type NextFunction,
+} from "express";
 import cors from "cors";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -32,15 +36,24 @@ interface AuthRequest extends Request {
 }
 
 // ==================== میدل‌ورها ====================
-const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+const authenticateToken = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "لطفاً ابتدا وارد حساب کاربری خود شوید." });
+    return res
+      .status(401)
+      .json({ error: "لطفاً ابتدا وارد حساب کاربری خود شوید." });
   }
 
   const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; role: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as {
+      userId: number;
+      role: string;
+    };
     req.user = decoded;
     next();
   } catch {
@@ -50,7 +63,8 @@ const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) 
 
 // ==================== توابع کمکی ====================
 const buildJobWhereClause = (query: Request["query"]): Prisma.JobWhereInput => {
-  const { q, jobType, experienceLevel, location, salaryRange, datePosted } = query;
+  const { q, jobType, experienceLevel, location, salaryRange, datePosted } =
+    query;
   const andConditions: Prisma.JobWhereInput[] = [];
 
   if (q && typeof q === "string" && q.trim() !== "") {
@@ -68,27 +82,46 @@ const buildJobWhereClause = (query: Request["query"]): Prisma.JobWhereInput => {
     if (types.length > 0) andConditions.push({ jobType: { in: types } });
   }
 
-  if (experienceLevel && typeof experienceLevel === "string" && experienceLevel.trim() !== "") {
+  if (
+    experienceLevel &&
+    typeof experienceLevel === "string" &&
+    experienceLevel.trim() !== ""
+  ) {
     const levels = experienceLevel.split(",");
     const expKeywords: Record<string, string[]> = {
-      intern: ["کارآموز", "intern"], junior: ["جونیور", "junior"], mid: ["مید", "mid"], senior: ["سنیور", "senior", "ارشد"], lead: ["لید", "lead", "مدیر", "manager"],
+      intern: ["کارآموز", "intern"],
+      junior: ["جونیور", "junior"],
+      mid: ["مید", "mid"],
+      senior: ["سنیور", "senior", "ارشد"],
+      lead: ["لید", "lead", "مدیر", "manager"],
     };
     const titleSearches = levels.flatMap((level) =>
-      (expKeywords[level] || []).map((kw) => ({ title: { contains: kw, mode: "insensitive" as Prisma.QueryMode } }))
+      (expKeywords[level] || []).map((kw) => ({
+        title: { contains: kw, mode: "insensitive" as Prisma.QueryMode },
+      })),
     );
     if (titleSearches.length > 0) andConditions.push({ OR: titleSearches });
   }
 
   if (location && typeof location === "string" && location.trim() !== "") {
-    andConditions.push({ location: { contains: location.trim(), mode: "insensitive" } });
+    andConditions.push({
+      location: { contains: location.trim(), mode: "insensitive" },
+    });
   }
 
   if (salaryRange && typeof salaryRange === "string") {
     const salaryKeywords: Record<string, string[]> = {
-      "0-10": ["۵", "۸", "۱۰"], "10-20": ["۱۰", "۱۵", "۲۰"], "20-30": ["۲۰", "۲۵", "۳۰"], "30-50": ["۳۰", "۳۵", "۴۰", "۴۵", "۵۰"], "50+": ["۵۰", "۶۰", "۷۰", "۸۰"],
+      "0-10": ["۵", "۸", "۱۰"],
+      "10-20": ["۱۰", "۱۵", "۲۰"],
+      "20-30": ["۲۰", "۲۵", "۳۰"],
+      "30-50": ["۳۰", "۳۵", "۴۰", "۴۵", "۵۰"],
+      "50+": ["۵۰", "۶۰", "۷۰", "۸۰"],
     };
     const keywords = salaryKeywords[salaryRange];
-    if (keywords) andConditions.push({ OR: keywords.map((kw) => ({ salary: { contains: kw } })) });
+    if (keywords)
+      andConditions.push({
+        OR: keywords.map((kw) => ({ salary: { contains: kw } })),
+      });
   }
 
   if (datePosted && typeof datePosted === "string" && datePosted !== "all") {
@@ -108,13 +141,28 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
   try {
     const { name, email, password, role } = req.body;
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) return res.status(400).json({ error: "این ایمیل قبلاً ثبت شده است." });
+    if (existingUser)
+      return res.status(400).json({ error: "این ایمیل قبلاً ثبت شده است." });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({ data: { name, email, password: hashedPassword, role } });
+    const user = await prisma.user.create({
+      data: { name, email, password: hashedPassword, role },
+    });
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
-    res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    res
+      .status(201)
+      .json({
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "خطا در ثبت‌نام" });
@@ -125,13 +173,25 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(400).json({ error: "ایمیل یا رمز عبور اشتباه است." });
+    if (!user)
+      return res.status(400).json({ error: "ایمیل یا رمز عبور اشتباه است." });
 
     const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) return res.status(400).json({ error: "ایمیل یا رمز عبور اشتباه است." });
+    if (!isValid)
+      return res.status(400).json({ error: "ایمیل یا رمز عبور اشتباه است." });
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "خطا در ورود" });
@@ -154,7 +214,12 @@ app.get("/api/jobs", async (req: Request, res: Response) => {
       prisma.job.count({ where }),
     ]);
 
-    res.json({ jobs, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
+    res.json({
+      jobs,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "خطایی در دریافت اطلاعات رخ داد." });
@@ -162,42 +227,69 @@ app.get("/api/jobs", async (req: Request, res: Response) => {
 });
 
 // ==================== مسیرهای درخواست شغلی (Apply) ====================
-app.post("/api/jobs/:id/apply", authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const jobId = parseInt(req.params.id as string, 10);
-    const userId = req.user!.userId;
+app.post(
+  "/api/jobs/:id/apply",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.id as string, 10);
+      const userId = req.user!.userId;
 
-    const job = await prisma.job.findUnique({ where: { id: jobId } });
-    if (!job) return res.status(404).json({ error: "آگهی مورد نظر یافت نشد." });
+      const job = await prisma.job.findUnique({ where: { id: jobId } });
+      if (!job)
+        return res.status(404).json({ error: "آگهی مورد نظر یافت نشد." });
 
-    const existingApp = await prisma.application.findFirst({ where: { userId, jobId } });
-    if (existingApp) return res.status(400).json({ error: "شما قبلاً برای این آگهی رزومه ارسال کرده‌اید." });
+      const existingApp = await prisma.application.findFirst({
+        where: { userId, jobId },
+      });
+      if (existingApp)
+        return res
+          .status(400)
+          .json({ error: "شما قبلاً برای این آگهی رزومه ارسال کرده‌اید." });
 
-    const application = await prisma.application.create({ data: { userId, jobId, status: "pending" } });
-    res.status(201).json({ message: "رزومه با موفقیت ارسال شد!", application });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "خطا در ارسال رزومه" });
-  }
-});
+      const application = await prisma.application.create({
+        data: { userId, jobId, status: "pending" },
+      });
+      res
+        .status(201)
+        .json({ message: "رزومه با موفقیت ارسال شد!", application });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "خطا در ارسال رزومه" });
+    }
+  },
+);
 
-app.get("/api/applications", authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const applications = await prisma.application.findMany({
-      where: { userId },
-      include: { job: { select: { id: true, title: true, companyName: true, location: true } } },
-      orderBy: { createdAt: "desc" },
-    });
-    res.json(applications);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "خطا در دریافت اطلاعات" });
-  }
-});
+app.get(
+  "/api/applications",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.user!.userId;
+      const applications = await prisma.application.findMany({
+        where: { userId },
+        include: {
+          job: {
+            select: {
+              id: true,
+              title: true,
+              companyName: true,
+              location: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      res.json(applications);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "خطا در دریافت اطلاعات" });
+    }
+  },
+);
 
 // ✅ اجرای سرور برای لوکال و اکسپورت برای Vercel (آب از آب تکان نمی‌خورد)
-if (process.env.NODE_ENV !== "production") {
+if (process.env.VERCEL !== "1") {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
